@@ -6,6 +6,12 @@
  * @subpackage Image_Class
  * @since 2.0
  */
+
+/**
+ * Class to extract common EXIF tags from an image.
+ *
+ * @package Image_Class
+ */
 class CreativeCommonsImage {
 
 	/**
@@ -109,7 +115,7 @@ class CreativeCommonsImage {
 			$license_url,
 			$matches
 		);
-		# SHOULD BE ENUMERATIVE.
+		// SHOULD BE ENUMERATIVE.
 		if ( $matched ) {
 			if ( $matches[2] == 'zero' ) {
 				$url = CCPLUGIN__URL . 'includes/attribution-box/cc0.svg';
@@ -183,14 +189,15 @@ class CreativeCommonsImage {
 	/**
 	 * Function: maybe_apply_attachment_license_url
 	 *
-	 * @param  mixed $post_id
-	 * @param  mixed $exif
+	 * Using now EXIF/IPTC fields from WordPress' own wp_read_image_metadata()
+	 * instead of PHP's built-in exif_read_data().
+	 *
+	 * @param  mixed $post_id id of given post.
+	 * @param  mixed $exif Associative array of parsed EXIF/IPTC fields.
 	 */
 	public function maybe_apply_attachment_license_url( $post_id, $exif ) {
-		if ( isset( $exif['COMPUTED']['Copyright'] ) ) {
-			$url = $this->exif_copyright_license_url(
-				$exif['COMPUTED']['Copyright']
-			);
+		if ( isset( $exif['copyright'] ) ) {
+			$url = $this->exif_copyright_license_url( $exif['copyright'] );
 			// Set the metadata, which wasn't already set.
 			add_post_meta( $post_id, 'license_url', $url, true );
 		}
@@ -200,10 +207,13 @@ class CreativeCommonsImage {
 	/**
 	 * Function: maybe_apply_attachment_url
 	 *
-	 * @param  mixed $post_id
-	 * @param  mixed $meta_field
-	 * @param  mixed $exif
-	 * @param  mixed $exif_field
+	 * Note that this ought to work even with the fields coming from wp_read_image_metadata()
+	 * and not only from PHP's built-in exif_read_data().
+	 *
+	 * @param  mixed $post_id WordPress post ID.
+	 * @param  mixed $meta_field Metadata field for this attachment.
+	 * @param  mixed $exif Associative array of parsed EXIF/IPTC fields.
+	 * @param  mixed $exif_field EXIF/IPTC field name.
 	 */
 	public function maybe_apply_attachment_url( $post_id, $meta_field, $exif, $exif_field ) {
 
@@ -218,7 +228,13 @@ class CreativeCommonsImage {
 	/**
 	 * Function read_exif
 	 *
-	 * Get exif for given image format
+	 * Get exif for given image format.
+	 *
+	 * Replaced exif_read_data() with the WP function wp_read_image_metadata() which also covers IPTC
+	 * (gwyneth 20210830).
+	 *
+	 * @link https://developer.wordpress.org/reference/functions/wp_read_image_metadata/
+	 * @todo Read XMP as well; WordPress (up to 5.8) doesn't provide a function for that yet.
 	 *
 	 * @param  mixed $post_id id of given post.
 	 */
@@ -226,7 +242,21 @@ class CreativeCommonsImage {
 
 		// Will give error for image formats we can't get Exif for.
 		$image_path = get_attached_file( $post_id );
-		$exif       = exif_read_data( $image_path );
+		// WordPress added a more sophisticated function, handling IPTC data as well (gwyneth 20210830).
+		// was: $exif       = exif_read_data( $image_path );
+
+		// First check if the relevant functions are available; if not, get them from `image.php`.
+		// @link https://developer.wordpress.org/reference/functions/wp_read_image_metadata/#comment-2123
+		if ( ! function_exists( 'file_is_valid_image' ) || ! function_exists( 'wp_read_image_metadata' ) ) {
+			require_once ABSPATH . '/wp-admin/includes/image.php';
+		}
+
+		if ( file_is_valid_image( $image_path ) ) {
+			// Note that this $exif has different fields than those from exif_read_data()!
+			$exif = wp_read_image_metadata( $image_path );
+		}
+
+
 		return $exif;
 	}
 
@@ -264,7 +294,7 @@ class CreativeCommonsImage {
 	 * Function: license_select
 	 *
 	 * @param  mixed $post_id id of the given post.
-	 * @param  mixed $original .
+	 * @param  mixed $original Original license.
 	 */
 	public function license_select( $post_id, $original ) {
 
