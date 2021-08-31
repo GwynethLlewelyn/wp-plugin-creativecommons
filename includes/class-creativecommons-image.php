@@ -46,10 +46,11 @@ class CreativeCommonsImage {
 	/**
 	 * Function: exif_copyright_license_url
 	 *
-	 *  Extract the first license in triangle brackets from the Exif Copyright
+	 * Extract the first license in triangle brackets from the Exif Copyright
 	 * FIXME: validate in regex, and handle publicdomain
 	 *
 	 * @param mixed $copyright exif copyright.
+	 * @return string URL for the license (or empty if not found).
 	 */
 	public function exif_copyright_license_url( $copyright ) {
 		$url = '';
@@ -75,9 +76,10 @@ class CreativeCommonsImage {
 	/**
 	 * Function: exif_url
 	 *
-	 * Extracts a url from a string of the form "A. N. Other <https://another.com/home/>"
+	 * Extracts a URL from a string of the form "A. N. Other <https://another.com/home/>"
 	 *
 	 * @param  mixed $exif_value a string of the form "A. N. Other <https://another.com/home/>".
+	 * @return string URL extracted from $exif_value.
 	 */
 	public function exif_url( $exif_value ) {
 		$url     = '';
@@ -92,9 +94,10 @@ class CreativeCommonsImage {
 	/**
 	 * Function: exif_text
 	 *
-	 * Extracts the non-url text from a string of the form "A. N. Other <https://another.com/home/>"
+	 * Extracts the non-URL text from a string of the form "A. N. Other <https://another.com/home/>"
 	 *
 	 * @param  mixed $exif_value a string of the form "A. N. Other <https://another.com/home/>".
+	 * @return string Non-URL text extracted from $exif_value.
 	 */
 	public function exif_text( $exif_value ) {
 		return trim( preg_replace( '/<https?:\/\/[^>]+>/', '', $exif_value ) );
@@ -107,6 +110,7 @@ class CreativeCommonsImage {
 	 * Convert a license url into the url for the icon for that license
 	 *
 	 * @param  mixed $license_url URL of the given licence.
+	 * @return string URL for the license button.
 	 */
 	public function license_button_url( $license_url ) {
 		$url     = false;
@@ -117,9 +121,9 @@ class CreativeCommonsImage {
 		);
 		// SHOULD BE ENUMERATIVE.
 		if ( $matched ) {
-			if ( $matches[2] == 'zero' ) {
+			if ( 'zero' == $matches[2] ) {
 				$url = CCPLUGIN__URL . 'includes/attribution-box/cc0.svg';
-			} elseif ( $matches[1] == 'publicdomain' ) {
+			} elseif ( 'publicdomain' == $matches[1] ) {
 				$url = CCPLUGIN__URL . 'includes/attribution-box/cc0.svg';
 			} else {
 				$url = CCPLUGIN__URL . 'includes/attribution-box/'
@@ -137,6 +141,7 @@ class CreativeCommonsImage {
 	 * Generates the canonical English name for the license with the given url
 	 *
 	 * @param  mixed $license_url URL of the given license.
+	 * @return string License name.
 	 */
 	public function license_name( $license_url ) {
 		$name = '';
@@ -177,6 +182,7 @@ class CreativeCommonsImage {
 	 * Function: license_url_is_zero
 	 *
 	 * @param  mixed $license_url URL of the given license.
+	 * @return bool Returns true if detected license is in the public domain.
 	 */
 	public function license_url_is_zero( $license_url ) {
 		return strpos(
@@ -194,6 +200,7 @@ class CreativeCommonsImage {
 	 *
 	 * @param  mixed $post_id id of given post.
 	 * @param  mixed $exif Associative array of parsed EXIF/IPTC fields.
+	 * @return void
 	 */
 	public function maybe_apply_attachment_license_url( $post_id, $exif ) {
 		if ( isset( $exif['copyright'] ) ) {
@@ -214,6 +221,7 @@ class CreativeCommonsImage {
 	 * @param  mixed $meta_field Metadata field for this attachment.
 	 * @param  mixed $exif Associative array of parsed EXIF/IPTC fields.
 	 * @param  mixed $exif_field EXIF/IPTC field name.
+	 * @return void
 	 */
 	public function maybe_apply_attachment_url( $post_id, $meta_field, $exif, $exif_field ) {
 
@@ -237,16 +245,19 @@ class CreativeCommonsImage {
 	 * @todo Read XMP as well; WordPress (up to 5.8) doesn't provide a function for that yet.
 	 *
 	 * @param  mixed $post_id id of given post.
+	 * @return mixed Either the retrieved image metadata extracted from an existing and valid image, or null.
 	 */
 	public function read_exif( $post_id ) {
 
 		// Will give error for image formats we can't get Exif for.
 		$image_path = get_attached_file( $post_id );
 		// WordPress added a more sophisticated function, handling IPTC data as well (gwyneth 20210830).
-		// was: $exif       = exif_read_data( $image_path );
+		// was: $exif       = exif_read_data( $image_path ); .
+
+		$exif = null; // set to null here, because, scope (gwyneth 20210831).
 
 		// First check if the relevant functions are available; if not, get them from `image.php`.
-		// @link https://developer.wordpress.org/reference/functions/wp_read_image_metadata/#comment-2123
+		// @link https://developer.wordpress.org/reference/functions/wp_read_image_metadata/#comment-2123 .
 		if ( ! function_exists( 'file_is_valid_image' ) || ! function_exists( 'wp_read_image_metadata' ) ) {
 			require_once ABSPATH . '/wp-admin/includes/image.php';
 		}
@@ -255,7 +266,6 @@ class CreativeCommonsImage {
 			// Note that this $exif has different fields than those from exif_read_data()!
 			$exif = wp_read_image_metadata( $image_path );
 		}
-
 
 		return $exif;
 	}
@@ -267,6 +277,7 @@ class CreativeCommonsImage {
 	 * If the file has Exif, and it cointains license metadata, apply it
 	 *
 	 * @param  mixed $post_id id of given post.
+	 * @return void
 	 */
 	public function extract_exif_license_metadata( $post_id ) {
 		$exif = $this->read_exif( $post_id );
@@ -284,9 +295,10 @@ class CreativeCommonsImage {
 	 * Function: license_url_field_id
 	 *
 	 * @param  mixed $post_id id of the given post.
+	 * @return string Tag attribute including the post id.
 	 */
 	public function license_url_field_id( $post_id ) {
-		return "attachments-{$post_id}-license_url]";
+		return "attachments-{$post_id}-license_url]"; // why the closing square bracket (gwyneth 20210831)?
 	}
 
 
@@ -295,6 +307,7 @@ class CreativeCommonsImage {
 	 *
 	 * @param  mixed $post_id id of the given post.
 	 * @param  mixed $original Original license.
+	 * @return string HTML for the license <select> tag.
 	 */
 	public function license_select( $post_id, $original ) {
 
@@ -327,8 +340,9 @@ class CreativeCommonsImage {
 	/**
 	 * Function: license_text_field
 	 *
-	 * @param mixed $post_id
-	 * @param mixed $original
+	 * @param mixed $post_id id of given post.
+	 * @param mixed $original Original license.
+	 * @return string HTML-formatted text for the input field.
 	 */
 	public function license_text_field( $post_id, $original ) {
 		return '<input type="text" class="text"'
@@ -342,8 +356,11 @@ class CreativeCommonsImage {
 	/**
 	 * Function: add_image_license_metadata
 	 *
-	 * @param mixed $form_fields
-	 * @param mixed $post
+	 * Adds license metadata to an image, via a form.
+	 *
+	 * @param mixed $form_fields Associative array of form field names.
+	 * @param mixed $post WP post object.
+	 * @return mixed Updated form fields.
 	 */
 	public function add_image_license_metadata( $form_fields, $post ) {
 		$post_id = $post->ID;
@@ -411,8 +428,11 @@ class CreativeCommonsImage {
 	/**
 	 * Function: save_image_license_metadata
 	 *
-	 * @param mixed $post
-	 * @param mixed $attachment
+	 * Adds license metadata for an image attached to a post.
+	 *
+	 * @param mixed $post WP post object.
+	 * @param mixed $attachment WP attachment object.
+	 * @return mixed Updated WP post object with license metadata.
 	 */
 	public function save_image_license_metadata( $post, $attachment ) {
 		$image_meta = array( 'license_url', 'attribution_url', 'source_work_url', 'extra_permissions_url' );
@@ -443,11 +463,12 @@ class CreativeCommonsImage {
 	/**
 	 * Function: license_block
 	 *
-	 * @param mixed $att_id
-	 * @param mixed $fallback_title
+	 * @param mixed $att_id ID for the attribute.
+	 * @param mixed $fallback_title Default title when nothing had been explicitly set.
+	 * @return string HTML-formatted block for the license.
 	 */
 	public function license_block( $att_id, $fallback_title = null ) {
-		if ( $fallback_title === null ) {
+		if ( null === $fallback_title ) {
 			$fallback_title = __( 'This image' );
 		}
 		$license_url     = get_post_meta( $att_id, 'license_url', true );
@@ -527,8 +548,9 @@ class CreativeCommonsImage {
 	/**
 	 * Function: caption_block
 	 *
-	 * @param mixed $attr
-	 * @param mixed $att_id
+	 * @param mixed $attr Attributes.
+	 * @param mixed $att_id Attachment ID.
+	 * @return string HTML for the caption.
 	 */
 	public function caption_block( $attr, $att_id ) {
 
@@ -553,7 +575,8 @@ class CreativeCommonsImage {
 	 * image will be resized. We do this to avoid the edge case where image-20x20.jpg and image.jpg
 	 * both exist and we are getting the former.
 	 *
-	 * @param mixed $image_url
+	 * @param mixed $image_url URL to the attached image.
+	 * @return Resulting post id for this image, or null if not found.
 	 */
 	public function image_url_to_postid( $image_url ) {
 		$att_id = null;
@@ -575,19 +598,20 @@ class CreativeCommonsImage {
 	/**
 	 * Function: license_shortcode
 	 *
-	 * @param mixed $atts
-	 * @param mixed $content
+	 * @param mixed $atts Apparently unused parameter (?).
+	 * @param mixed $content HTML for the License Block shortcode.
+	 * @return mixed Parsed shortcode text.
 	 */
 	public function license_shortcode( $atts, $content = null ) {
 
-		if ( $content !== null ) {
+		if ( null !== $content ) {
 			// TODO: Profile replacing this with parsing html and walking the DOM.
 			$match_count = preg_match(
 				'/<img[^>]+src="([^"]+)"/',
 				$content,
 				$matches
 			);
-			if ( $match_count == 1 ) {
+			if ( 1 == $match_count ) {
 				$image_url = $matches[1];
 				$att_id    = $this->image_url_to_postid( $image_url );
 				if ( $att_id ) {
@@ -607,6 +631,11 @@ class CreativeCommonsImage {
 	 * both work. We could allow users to insert a license *here*, but we would
 	 * rather associate the license with the media object as that is more
 	 * robust. So we do not and will not do that.
+	 *
+	 * @param mixed $empty Unused parameter.
+	 * @param mixed $attr Shortcode attributes to use.
+	 * @param mixed $content Actual shortcode content.
+	 * @return string Formatted HTML for the shortcode, or empty string if id/license not set.
 	 */
 	public function captioned_image( $empty, $attr, $content ) {
 			$args = shortcode_atts(
@@ -683,9 +712,9 @@ class CreativeCommonsImage {
 		 * );
 		*/
 
-		if (get_option("enable_attribution_box")) {
-			add_filter( 'the_content', array( $this, 'add_attribution_boxes' ));
-			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_attribution_boxes' ));
+		if ( get_option( 'enable_attribution_box' ) ) {
+			add_filter( 'the_content', array( $this, 'add_attribution_boxes' ) );
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_attribution_boxes' ) );
 		}
 
 		add_shortcode(
@@ -694,45 +723,72 @@ class CreativeCommonsImage {
 		);
 	}
 
+	/**
+	 * Function: enqueue_attribution_boxes
+	 *
+	 * @return void
+	 */
 	public function enqueue_attribution_boxes() {
-		wp_enqueue_style('cc-attribution-box', plugins_url('css/cc-attribution-box.css', dirname(__FILE__)));
+		wp_enqueue_style( 'cc-attribution-box',
+			plugins_url( 'css/cc-attribution-box.css', dirname( __FILE__ ) ),
+			array(),
+			false
+		);
 	}
 
+	/**
+	 * Function: add_attribution_boxes
+	 *
+	 * Adds attribution boxes to all instances of `wp-image-*` using a regex.
+	 *
+	 * @param mixed $content Additional HTML content for the attribution boxes.
+	 * @return mixed Replacement result.
+	 */
 	public function add_attribution_boxes( $content ) {
 		return preg_replace_callback(
 			'/<img\s[^>]*class="wp-image-(\d+)[^>]*>/',
-			function ($matches) {
-				return
-					'<div class="cc-attribution-box-container">'
+			function ( $matches ) {
+				return '<div class="cc-attribution-box-container">'
 					. $matches[0]
 					. '<div class="cc-attribution-box"> '
-					. $this->simple_license_block($matches[1])
+					. $this->simple_license_block( $matches[1] )
 					. '</div></div>';
 			},
 			$content
 		);
 	}
 
-	public function simple_license_block($att_id) {
-		/* TODO: this should just be replaced by just using $this->license_block.
+	/**
+	 * Function: simple_license_block
+	 *
+	 * @param mixed $att_id Attachment id.
+	 * @return string HTML-formatted license block.
+	 */
+	public function simple_license_block( $att_id ) {
+		/**
+		 * TODO: this should just be replaced by just using $this->license_block.
 		 * Need to make sure that code can be safely fixed for this purpose,
 		 */
 		$license_url     = get_post_meta( $att_id, 'license_url', true );
 		$attribution_url = get_post_meta( $att_id, 'attribution_url', true );
-		$title = get_the_title( $att_id );
-		$credit = get_post_meta( $att_id, 'attribution_name', true );
+		$title           = get_the_title( $att_id );
+		$credit          = get_post_meta( $att_id, 'attribution_name', true );
 
 		$license_name = $this->license_name( $license_url );
 		$button_url   = $this->license_button_url( $license_url );
 
-		if (!$button_url) return '';
+		if ( empty( $button_url ) ) {
+			return ''; // empty() will check for both null and ''.
+		}
 
-		$lazy = function_exists('wp_lazy_loading_enabled') && wp_lazy_loading_enabled('img', 'simple_license_block');
-		$loading_type = $lazy ? 'lazy' : 'eager'; // 'eager' is the browser default
-		return "<div>" . esc_html($credit) . "</div>"
-			."<a target='_blank' href='" . esc_url($attribution_url) . "'>$title</a>"
-			. "<a class='cc-attribution-box-license' target='_blank' href='" . esc_url($license_url) . "' title='" . esc_attr($license_name) . "'>"
-			. "<img src='" . esc_url($button_url) . "' alt='" . esc_attr($license_name) . " . loading='" . $loading_type . "'></a>";
+		$lazy = function_exists( 'wp_lazy_loading_enabled' ) && wp_lazy_loading_enabled( 'img', 'simple_license_block' );
+		$loading_type = $lazy ? 'lazy' : 'eager'; // 'eager' is the browser default.
+		return '<div>' . esc_html( $credit ) . '</div>'
+			. "<a target='_blank' href='" . esc_url( $attribution_url ) . "'>$title</a>"
+			. "<a class='cc-attribution-box-license' target='_blank' href='" . esc_url( $license_url ) . "' title='"
+			. esc_attr( $license_name ) . "'>"
+			. "<img src='" . esc_url( $button_url ) . "' alt='" . esc_attr( $license_name )
+			. " . loading='" . $loading_type . "'></a>";
 	}
 
 }
