@@ -1,7 +1,8 @@
-<div align="center">
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
+
+<div align="center">
   <img src="https://mirrors.creativecommons.org/presskit/icons/cc.xlarge.png" height="150">
   <h2 align="center">CC WordPress Plugin</h2>
   <p align="center">Official Creative Commons plugin for licensing your content on your WordPress website. With Creative Commons licenses, keep your copyright and share your creativity.
@@ -10,13 +11,14 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html) [![CalVer Format: YYYY.0M.Micro](https://img.shields.io/badge/calver-YYYY.0M.MICRO-22bfda.svg)](https://calver.org/)
 
 </div>
+
 ## Note & Disclaimer
 
 This is a fork that I was doing to basically replace the `exif_read_data()` call with `wp_read_image_metadata()`, which includes metadata from IPTC, not only EXIF. Unfortunately, for security reasons, the Automattic folks clean up the results, stripping all the tags from them, including non-HTML tags, which _may_ render the information next to useless. See [issue #14](https://github.com/creativecommons/wp-plugin-creativecommons/issues/14).
 
 A pity that I only read that 5-year-old issue _after_ doing all the work on this fork, which _also_ includes a lot of cleaning up. Alas, everything now is useless, so I'm freezing the code and archiving it on GitHub, in case anyone finds the subtle changes I made to get the code more conforming to the WordPress coding style useful...
 
-	- [Gwyneth Llewelyn](https://github.com/GwynethLlewelyn), on the last day of August 2021
+ -- [Gwyneth Llewelyn](https://github.com/GwynethLlewelyn), on the last day of August 2021
 
 ## Description
 
