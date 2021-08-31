@@ -732,7 +732,7 @@ class CreativeCommonsImage {
 		wp_enqueue_style( 'cc-attribution-box',
 			plugins_url( 'css/cc-attribution-box.css', dirname( __FILE__ ) ),
 			array(),
-			false
+			filemtime( get_template_directory() . 'css/cc-attribution-box.css' ) // cache-buster (gwyneth 20210831)!
 		);
 	}
 
